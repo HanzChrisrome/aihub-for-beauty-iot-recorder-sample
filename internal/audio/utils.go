@@ -7,6 +7,15 @@ import (
 	"github.com/gordonklaus/portaudio"
 )
 
+// AudioDevice represents an audio input device
+type AudioDevice struct {
+    Index             int     `json:"index"`
+    Name              string  `json:"name"`
+    MaxInputChannels  int     `json:"max_input_channels"`
+    DefaultSampleRate float64 `json:"default_sample_rate"`
+    HostAPI           string  `json:"host_api"`
+}
+
 func SampleRateToByte(sampleRate float64) []byte {
 	switch sampleRate {
 	case 16000:
@@ -26,25 +35,129 @@ func must(err error) {
 	}
 }
 
-func ListDevices() {
-	err := portaudio.Initialize()
-	if err != nil {
-		log.Fatal("Failed to init PortAudio:", err)
-	}
-	defer portaudio.Terminate()
+func ListAudioDevices() []AudioDevice {
+    if err := portaudio.Initialize(); err != nil {
+        log.Printf("Failed to initialize PortAudio: %v", err)
+        return []AudioDevice{}
+    }
+    defer portaudio.Terminate()
 
-	devices, err := portaudio.Devices()
-	if err != nil {
-		log.Fatal("Failed to list devices:", err)
-	}
+    devices, err := portaudio.Devices()
+    if err != nil {
+        log.Printf("Failed to get devices: %v", err)
+        return []AudioDevice{}
+    }
 
-	fmt.Println("=== PortAudio Devices ===")
-	for i, dev := range devices {
-		fmt.Printf("\nDevice %d:\n", i)
-		fmt.Printf("  Name: %s\n", dev.Name)
-		fmt.Printf("  Max Input Channels: %d\n", dev.MaxInputChannels)
-		fmt.Printf("  Max Output Channels: %d\n", dev.MaxOutputChannels)
-		fmt.Printf("  Default Sample Rate: %.0f\n", dev.DefaultSampleRate)
-		fmt.Printf("  Host API: %s\n", dev.HostApi.Name)
-	}
+    var audioDevices []AudioDevice
+    for i, device := range devices {
+        if device.MaxInputChannels > 0 {
+            hostAPIName := "Unknown"
+            if device.HostApi != nil {
+                hostAPIName = device.HostApi.Name
+            }
+
+            audioDevices = append(audioDevices, AudioDevice{
+                Index:             i,
+                Name:              device.Name,
+                MaxInputChannels:  device.MaxInputChannels,
+                DefaultSampleRate: device.DefaultSampleRate,
+                HostAPI:           hostAPIName,
+            })
+        }
+    }
+
+    log.Printf("Found %d audio input devices", len(audioDevices))
+    return audioDevices
+}
+
+// GetDeviceByIndex returns device information for a specific index
+func GetDeviceByIndex(index int) (*AudioDevice, error) {
+    if err := portaudio.Initialize(); err != nil {
+        return nil, fmt.Errorf("failed to initialize PortAudio: %w", err)
+    }
+    defer portaudio.Terminate()
+
+    devices, err := portaudio.Devices()
+    if err != nil {
+        return nil, fmt.Errorf("failed to get devices: %w", err)
+    }
+
+    if index < 0 || index >= len(devices) {
+        return nil, fmt.Errorf("device index %d out of range", index)
+    }
+
+    device := devices[index]
+    if device.MaxInputChannels == 0 {
+        return nil, fmt.Errorf("device %d has no input channels", index)
+    }
+
+    hostAPIName := "Unknown"
+    if device.HostApi != nil {
+        hostAPIName = device.HostApi.Name
+    }
+
+    return &AudioDevice{
+        Index:             index,
+        Name:              device.Name,
+        MaxInputChannels:  device.MaxInputChannels,
+        DefaultSampleRate: device.DefaultSampleRate,
+        HostAPI:           hostAPIName,
+    }, nil
+}
+
+// PrintAvailableDevices prints all available audio devices to console
+func PrintAvailableDevices() {
+    devices := ListAudioDevices()
+
+    fmt.Println("\n🎤 Available Audio Input Devices:")
+    fmt.Println("─────────────────────────────────────────────────────")
+
+    for _, device := range devices {
+        fmt.Printf("[%d] %s\n", device.Index, device.Name)
+        fmt.Printf("    Channels: %d | Sample Rate: %.0f Hz | Host API: %s\n",
+            device.MaxInputChannels,
+            device.DefaultSampleRate,
+            device.HostAPI)
+        fmt.Println()
+    }
+
+    fmt.Println("─────────────────────────────────────────────────────")
+}
+
+// GetDefaultInputDevice returns the default input device
+func GetDefaultInputDevice() (*AudioDevice, error) {
+    if err := portaudio.Initialize(); err != nil {
+        return nil, fmt.Errorf("failed to initialize PortAudio: %w", err)
+    }
+    defer portaudio.Terminate()
+
+    defaultDevice, err := portaudio.DefaultInputDevice()
+    if err != nil {
+        return nil, fmt.Errorf("failed to get default input device: %w", err)
+    }
+
+    devices, err := portaudio.Devices()
+    if err != nil {
+        return nil, fmt.Errorf("failed to get devices: %w", err)
+    }
+
+    // Find the index of the default device
+    for i, device := range devices {
+        if device == defaultDevice {
+            hostAPIName := "Unknown"
+            if device.HostApi != nil {
+                hostAPIName = device.HostApi.Name
+            }
+
+            return &AudioDevice{
+                Index:             i,
+                Name:              device.Name,
+                MaxInputChannels:  device.MaxInputChannels,
+                DefaultSampleRate: device.DefaultSampleRate,
+                HostAPI:           hostAPIName,
+            }, nil
+        }
+    }
+
+    return nil, fmt.Errorf("default device not found in device list")
 }

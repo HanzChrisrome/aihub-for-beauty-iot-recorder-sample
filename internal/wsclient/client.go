@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	MSG_START_RECORDING = "start_recording"
-	MSG_STOP_RECORDING  = "stop_recording"
-	MSG_STATUS          = "status"
-	MSG_ERROR           = "error"
-	MSG_SUCCESS         = "success"
-	MSG_FILE_UPLOAD     = "file_upload"
+    MSG_START_RECORDING = "start_recording"
+    MSG_STOP_RECORDING  = "stop_recording"
+    MSG_LIST_DEVICES    = "list_devices"
+    MSG_STOP_ALL        = "stop_all"
+    MSG_STATUS          = "status"
+    MSG_ERROR           = "error"
+    MSG_SUCCESS         = "success"
 )
 
 type WSMessage struct {

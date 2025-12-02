@@ -1,36 +1,36 @@
 package audio
 
 type IAudioFormat interface {
-	CreateFilePath(sysPath, filename string) string
 	Init(recordControlSig *RecondControlSignal, sysPath, filename string, targetChannel int16, sampleRate float64, inputBufSize int)
-	GetFileType() string
 	Record()
-	WrapUp()
-}
-
-type RecondControlSignal struct {
-	Sig chan uint8
-}
-
-func NewRecControlSig() *RecondControlSignal {
-	return &RecondControlSignal{
-		Sig: make(chan uint8),
-	}
+	GetFileType() string
+	SetDeviceIndex(deviceIndex int)
 }
 
 const (
 	AUDIO_CTL_STOP_REC          = 0
-	AUDIO_CTL_START_REC         = 1
-	AUDIO_CTL_REC_FULLY_STOPPED = 2
-	AUDIO_GRACE_KILL_SIG_REQ    = 3
-	AUDIO_GRACE_KILL_SIG_PROC   = 4
+	AUDIO_CTL_REC_FULLY_STOPPED = 1
+	AUDIO_GRACE_KILL_SIG_REQ    = 2
+	AUDIO_GRACE_KILL_SIG_PROC   = 3
 )
 
-const (
-	AUDIO_AIFF uint8 = 1
-	AUDIO_WAV  uint8 = 2
-)
+type RecondControlSignal struct {
+	Sig chan int
+}
 
-func NewAudioInstance(audioType uint8) IAudioFormat {
-	return NewAIFFAudioFormat()
+func NewRecControlSig() *RecondControlSignal {
+	return &RecondControlSignal{
+		Sig: make(chan int),
+	}
+}
+
+// NewAudioInstance creates a new audio format instance based on type
+func NewAudioInstance(audioType string) IAudioFormat {
+	switch audioType {
+	case "aiff":
+		return NewAIFFAudioFormat()
+
+	default:
+		return NewAIFFAudioFormat()
+	}
 }

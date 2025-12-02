@@ -2,6 +2,7 @@ package wsclient
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,96 +16,186 @@ import (
 )
 
 func (c *Client) handleMessage(msg WSMessage) {
-	switch msg.Type {
+    switch msg.Type {
 
-	case MSG_START_RECORDING:
-		c.handleStartRecording()
+    case MSG_START_RECORDING:
+        // Try to parse as multi-device message first
+        var multiMsg StartRecordingMessage
+        if err := json.Unmarshal(msg.Data, &multiMsg); err == nil && multiMsg.SessionID != "" {
+            c.handleStartRecordingMulti(multiMsg)
+        } else {
+            // Fallback to old single-device method
+            c.handleStartRecordingSingle()
+        }
 
-	case MSG_STOP_RECORDING:
-		c.handleStopRecording()
+    case MSG_STOP_RECORDING:
+        // Try to parse as session-based message first
+        var stopMsg StopRecordingMessage
+        if err := json.Unmarshal(msg.Data, &stopMsg); err == nil && stopMsg.SessionID != "" {
+            c.handleStopRecordingSession(stopMsg)
+        } else {
+            // Fallback to old single-device method
+            c.handleStopRecordingSingle()
+        }
 
-	case MSG_STATUS:
-		log.Println("?? Status from server:", string(msg.Data))
+    case MSG_LIST_DEVICES:
+        c.handleListDevices()
 
-	case MSG_ERROR:
-		log.Println("? Server error:", msg.Message)
+    case MSG_STOP_ALL:
+        c.handleStopAll()
 
-	case MSG_SUCCESS:
-		return
+    case MSG_STATUS:
+        log.Println("📊 Status from server:", string(msg.Data))
 
-	default:
-		return
-	}
+    case MSG_ERROR:
+        log.Println("❌ Server error:", msg.Message)
+
+    case MSG_SUCCESS:
+        return
+
+    default:
+        return
+    }
 }
 
-func (c *Client) handleStartRecording() {
-	log.Println("?? START RECORDING tangina mo aeron received")
+// handleStartRecordingMulti handles multi-device recording
+func (c *Client) handleStartRecordingMulti(msg StartRecordingMessage) {
+    log.Printf("🎙️ Starting recording for session: %s, device: %d", msg.SessionID, msg.DeviceIndex)
 
-	if err := recorder.Start(); err != nil {
-		c.sendError("Failed to start recording: " + err.Error())
-		return
-	}
+    err := recorder.StartSession(msg.SessionID, msg.DeviceIndex)
+    if err != nil {
+        c.sendErrorMessage("start_recording", fmt.Sprintf("Failed to start recording: %v", err))
+        return
+    }
 
-	c.sendSuccess("recording started")
+    c.sendSuccessMessage("start_recording", fmt.Sprintf("Recording started for session %s on device %d", msg.SessionID, msg.DeviceIndex))
 }
 
-func (c *Client) handleStopRecording() {
-	log.Println("?? STOP RECORDING received")
+// handleStartRecordingSingle handles backward-compatible single recording
+func (c *Client) handleStartRecordingSingle() {
+    log.Println("🎙️ START RECORDING received (single device)")
 
-	if err := recorder.Stop(); err != nil {
-		c.sendError("Failed to stop recording: " + err.Error())
-		return
-	}
+    if err := recorder.Start(); err != nil {
+        c.sendError("Failed to start recording: " + err.Error())
+        return
+    }
 
-	filePath := audio.GetLastFilePath()
-	if err := c.sendFile(filePath); err != nil {
-		c.sendError("Failed to send file: " + err.Error())
-		return
-	}
-
-	c.sendSuccess("recording stopped and file sent")
+    c.sendSuccess("recording started")
 }
 
-func (c *Client) sendFile(filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
+// handleStopRecordingSession handles session-based stop
+func (c *Client) handleStopRecordingSession(msg StopRecordingMessage) {
+    log.Printf("⏹️ Stopping recording for session: %s", msg.SessionID)
 
-	defer file.Close()
+    filePath, err := recorder.StopSession(msg.SessionID)
+    if err != nil {
+        c.sendErrorMessage("stop_recording", fmt.Sprintf("Failed to stop recording: %v", err))
+        return
+    }
 
-	var requestBody bytes.Buffer
-	writer := multipart.NewWriter(&requestBody)
-	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
-	if err != nil {
-		return err
-	}
+    // Upload file in background
+    go func() {
+        err := c.sendFile(filePath, msg.SessionID)
+        if err != nil {
+            c.sendErrorMessage("upload_file", fmt.Sprintf("Failed to upload: %v", err))
+        } else {
+            c.sendSuccessMessage("upload_file", fmt.Sprintf("File uploaded for session %s", msg.SessionID))
+        }
+    }()
 
-	if _, err := io.Copy(part, file); err != nil {
-		return err
-	}
+    c.sendSuccessMessage("stop_recording", fmt.Sprintf("Recording stopped for session %s", msg.SessionID))
+}
 
-	writer.Close()
+// handleStopRecordingSingle handles backward-compatible single stop
+func (c *Client) handleStopRecordingSingle() {
+    log.Println("⏹️ STOP RECORDING received (single device)")
 
-	url := "http://aeronsarondo.site/db/audio"
-	req, err := http.NewRequest("POST", url, &requestBody)
-	if err != nil {
-		return err
-	}
+    if err := recorder.Stop(); err != nil {
+        c.sendError("Failed to stop recording: " + err.Error())
+        return
+    }
 
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+    filePath := audio.GetLastFilePath()
+    if err := c.sendFile(filePath, "default"); err != nil {
+        c.sendError("Failed to send file: " + err.Error())
+        return
+    }
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+    c.sendSuccess("recording stopped and file sent")
+}
 
-	if err != nil {
-		return err
-	}
+// handleListDevices lists all available audio devices
+func (c *Client) handleListDevices() {
+    devices := audio.ListAudioDevices()
+    
+    response := ResponseMessage{
+        Command: "list_devices_response",
+        Status:  "success",
+        Message: "Available audio devices",
+        Data:    devices,
+    }
+    
+    c.sendResponse(response)
+}
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("upload failed: %s", resp.Status)
-	}
+// handleStopAll stops all active recording sessions
+func (c *Client) handleStopAll() {
+    err := recorder.StopAllSessions()
+    if err != nil {
+        c.sendErrorMessage("stop_all", fmt.Sprintf("Failed to stop all sessions: %v", err))
+        return
+    }
 
-	log.Println(">> Sent audio file to backend:", filePath)
-	return nil
+    c.sendSuccessMessage("stop_all", "All recording sessions stopped")
+}
+
+// sendFile uploads a file to the backend with session information
+func (c *Client) sendFile(filePath string, sessionID string) error {
+    file, err := os.Open(filePath)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+
+    var requestBody bytes.Buffer
+    writer := multipart.NewWriter(&requestBody)
+    
+    // Add file
+    part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+    if err != nil {
+        return err
+    }
+
+    if _, err := io.Copy(part, file); err != nil {
+        return err
+    }
+
+    // Add session_id field
+    if err := writer.WriteField("session_id", sessionID); err != nil {
+        return err
+    }
+
+    writer.Close()
+
+    url := "http://aeronsarondo.site/db/audio"
+    req, err := http.NewRequest("POST", url, &requestBody)
+    if err != nil {
+        return err
+    }
+
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+        return fmt.Errorf("upload failed: %s", resp.Status)
+    }
+
+    log.Println("📤 Sent audio file to backend:", filePath, "Session:", sessionID)
+    return nil
 }
