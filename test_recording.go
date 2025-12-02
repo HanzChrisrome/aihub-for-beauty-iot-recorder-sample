@@ -53,10 +53,9 @@ func main() {
 	fmt.Printf("? Mic 2 saved: %s\n", file2)
 
 	// Summary
-	fmt.Println("\n?? Test Complete!")
+	fmt.Println("\nTest Complete!")
 	fmt.Println("================")
-	fmt.Println("\n?? Check your recordings:")
 	fmt.Println("  1. recordings/mic1/device_0_*.aiff (USB MIC PRO)")
 	fmt.Println("  2. recordings/mic2/device_1_*.aiff (USB Condenser Microphone)")
-	fmt.Println("\n??  Play both files to verify they contain different audio!")
+
 }

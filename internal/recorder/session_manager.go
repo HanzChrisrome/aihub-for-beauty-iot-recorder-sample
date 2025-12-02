@@ -7,7 +7,7 @@ import (
 
 type SessionManager struct {
 	sessions map[string]*RecordingSession
-	mu sync.RWMutex
+	mu       sync.RWMutex
 }
 
 func NewSessionManager() *SessionManager {
@@ -17,7 +17,7 @@ func NewSessionManager() *SessionManager {
 }
 
 func (sm *SessionManager) CreateSession(sessionID string, deviceIndex int) (*RecordingSession, error) {
-	sm.mu.Unlock()
+	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
 	if _, exists := sm.sessions[sessionID]; exists {
@@ -45,26 +45,26 @@ func (sm *SessionManager) RemoveSession(sessionID string) error {
 	defer sm.mu.Unlock()
 
 	if _, exists := sm.sessions[sessionID]; !exists {
-        return fmt.Errorf("session %s not found", sessionID)
-    }
+		return fmt.Errorf("session %s not found", sessionID)
+	}
 
 	delete(sm.sessions, sessionID)
 	return nil
 }
 
 func (sm *SessionManager) GetAllSessions() []*RecordingSession {
-    sm.mu.RLock()
-    defer sm.mu.RUnlock()
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
 
-    sessions := make([]*RecordingSession, 0, len(sm.sessions))
-    for _, session := range sm.sessions {
-        sessions = append(sessions, session)
-    }
-    return sessions
+	sessions := make([]*RecordingSession, 0, len(sm.sessions))
+	for _, session := range sm.sessions {
+		sessions = append(sessions, session)
+	}
+	return sessions
 }
 
 func (sm *SessionManager) GetActiveCount() int {
-    sm.mu.RLock()
-    defer sm.mu.RUnlock()
-    return len(sm.sessions)
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return len(sm.sessions)
 }
