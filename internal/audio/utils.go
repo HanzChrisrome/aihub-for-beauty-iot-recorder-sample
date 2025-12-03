@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -126,23 +127,18 @@ func GetDeviceIndexByName(name string) (int, error) {
 	return -1, fmt.Errorf("device with name containing %q not found", name)
 }
 
-// PrintAvailableDevices prints all available audio devices to console
-func PrintAvailableDevices() {
+func GetDevicesJSON() ([]byte, error) {
 	devices := ListAudioDevices()
+	return json.MarshalIndent(devices, "", "  ")
+}
 
-	fmt.Println("\n🎤 Available Audio Input Devices:")
-	fmt.Println("─────────────────────────────────────────────────────")
-
-	for _, device := range devices {
-		fmt.Printf("[%d] %s\n", device.Index, device.Name)
-		fmt.Printf("    Channels: %d | Sample Rate: %.0f Hz | Host API: %s\n",
-			device.MaxInputChannels,
-			device.DefaultSampleRate,
-			device.HostAPI)
-		fmt.Println()
+func PrintAvailableDevicesJSON() {
+	b, err := GetDevicesJSON()
+	if err != nil {
+		log.Printf("Failed to marshal devices to JSON: %v", err)
+		return
 	}
-
-	fmt.Println("─────────────────────────────────────────────────────")
+	fmt.Println(string(b))
 }
 
 // GetDefaultInputDevice returns the default input device

@@ -16,9 +16,6 @@ func main() {
 		log.Fatal("Failed to initialize PortAudio:", err)
 	}
 
-	fmt.Println("\n Available Devices:")
-	audio.PrintAvailableDevices()
-
 	idx1, err := audio.GetDeviceIndexByName("USB Condenser Microphone: Audio (hw:2,0)")
 	if err != nil {
 		log.Fatalf("Failed to resolve device name for mic2: %v", err)
@@ -39,7 +36,5 @@ func main() {
 		log.Fatal("? Failed to stop mic1:", err)
 	}
 	fmt.Printf("? Mic 1 saved: %s\n", file1)
-
 	fmt.Println("\nTest Complete!")
-
 }
