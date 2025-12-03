@@ -54,6 +54,22 @@ Top-level envelope (text JSON):
   "data": { ... command payload ... }
 }
 
+Targeting / pi_id
+- Clients include their pi_id as a query parameter when connecting: ws://host/ws?pi_id=<pi_id>
+- Backend should route messages to the intended PI by sending to that has the pi_id.
+- Alternatively the backend can include target_pi_id in the message JSON; the Pi will ignore messages whose target_pi_id does not match its own id.
+- Example envelope targeting a specific Pi:
++ ```json
++ {
++   "type": "start_recording",
++   "target_pi_id": "pi-0123456789abcdef",
++   "data": {
++     "command": "start_recording",
++     "session_id": "mic1",
++     "device_name": "USB Condenser Microphone"
++   }
++ }
+
 Supported types:
 - `start_recording` — start a session
   - Payload shape: [`wsclient.StartRecordingMessage`](internal/wsclient/messages.go)

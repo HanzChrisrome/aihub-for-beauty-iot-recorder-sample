@@ -2,6 +2,7 @@ package wsclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/url"
 	"time"
@@ -14,13 +15,13 @@ import (
 )
 
 const (
-    MSG_START_RECORDING = "start_recording"
-    MSG_STOP_RECORDING  = "stop_recording"
-    MSG_LIST_DEVICES    = "list_devices"
-    MSG_STOP_ALL        = "stop_all"
-    MSG_STATUS          = "status"
-    MSG_ERROR           = "error"
-    MSG_SUCCESS         = "success"
+	MSG_START_RECORDING = "start_recording"
+	MSG_STOP_RECORDING  = "stop_recording"
+	MSG_LIST_DEVICES    = "list_devices"
+	MSG_STOP_ALL        = "stop_all"
+	MSG_STATUS          = "status"
+	MSG_ERROR           = "error"
+	MSG_SUCCESS         = "success"
 )
 
 type WSMessage struct {
@@ -102,6 +103,20 @@ func (c *Client) readPump() {
 				Message: string(messageBytes),
 			})
 			continue
+		}
+
+		var target struct {
+			PiID string `json:"pi_id,omitempty"`
+		}
+
+		fmt.Println(msg.Data)
+		if len(msg.Data) > 0 {
+			if err := json.Unmarshal(msg.Data, &target); err == nil {
+				if target.PiID != "" && target.PiID != c.piID {
+					log.Printf("<< Ignoring message for pi_id=%s (this pi=%s)\n", target.PiID, c.piID)
+					continue
+				}
+			}
 		}
 
 		c.handleMessage(msg)

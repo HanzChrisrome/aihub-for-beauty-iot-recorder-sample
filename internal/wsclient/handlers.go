@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/otis-co-ltd/aihub-recorder/internal/audio"
 	"github.com/otis-co-ltd/aihub-recorder/internal/recorder"
@@ -73,7 +74,7 @@ func (c *Client) handleStartRecordingMulti(msg StartRecordingMessage) {
 		return
 	}
 
-	c.sendSuccessMessage("start_recording", fmt.Sprintf("Recording started for session %s on device %d", msg.SessionID, msg.DeviceIndex))
+	c.sendSuccessMessage("start_recording", fmt.Sprintf("Recording started for session %s on device %d", msg.SessionID, msg.DeviceName))
 }
 
 // handleStopRecordingSession handles session-based stop
@@ -82,11 +83,15 @@ func (c *Client) handleStopRecordingSession(msg StopRecordingMessage) {
 
 	filePath, err := recorder.StopSession(msg.SessionID)
 	if err != nil {
-		c.sendErrorMessage("stop_recording", fmt.Sprintf("Failed to stop recording: %v", err))
+		lower := strings.ToLower(err.Error())
+		if strings.Contains(lower, "not found") || strings.Contains(lower, "no such") || strings.Contains(lower, "no session") || strings.Contains(lower, "does not exist") {
+			c.sendErrorMessage("stop_recording", fmt.Sprintf("no active session found with id %s", msg.SessionID))
+		} else {
+			c.sendErrorMessage("stop_recording", fmt.Sprintf("Failed to stop recording: %v", err))
+		}
 		return
 	}
 
-	// Upload file in background
 	go func() {
 		err := c.sendFile(filePath, msg.SessionID)
 		if err != nil {
@@ -115,10 +120,28 @@ func (c *Client) handleListDevices() {
 
 // handleStopAll stops all active recording sessions
 func (c *Client) handleStopAll() {
-	err := recorder.StopAllSessions()
+	fileMap, err := recorder.StopAllSessions()
 	if err != nil {
-		c.sendErrorMessage("stop_all", fmt.Sprintf("Failed to stop all sessions: %v", err))
-		return
+		if len(fileMap) == 0 {
+			c.sendErrorMessage("stop_all", fmt.Sprintf("Failed to stop sessions: %v", err))
+			return
+		}
+		log.Printf("stop_all: some sessions failed to stop: %v", err)
+		c.sendErrorMessage("stop_all", fmt.Sprintf("Some sessions failed to stop: %v", err))
+	}
+
+	for sessionID, filePath := range fileMap {
+		if filePath == "" {
+			c.sendErrorMessage("upload_file", fmt.Sprintf("no file produced for session %s", sessionID))
+			continue
+		}
+		go func(sid, fp string) {
+			if err := c.sendFile(fp, sid); err != nil {
+				c.sendErrorMessage("upload_file", fmt.Sprintf("Failed to upload for %s: %v", sid, err))
+			} else {
+				c.sendSuccessMessage("upload_file", fmt.Sprintf("File uploaded for session %s", sid))
+			}
+		}(sessionID, filePath)
 	}
 
 	c.sendSuccessMessage("stop_all", "All recording sessions stopped")

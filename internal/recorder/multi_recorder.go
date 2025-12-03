@@ -25,11 +25,9 @@ func getAudioTypeString(audioType uint8) string {
 	switch audioType {
 	case 0:
 		return "aiff"
-	case 1:
-		return "wav"
-	// Add other types as needed
+
 	default:
-		return "aiff" // Default to AIFF
+		return "aiff"
 	}
 }
 
@@ -59,7 +57,7 @@ func StartSession(sessionID string, deviceIndex int) error {
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("device_%d_%s", deviceIndex, timestamp)
 
-	expectedFilePath := filepath.Join(sessionDir, fmt.Sprintf("%s.%v", filename, cfg.SYS_AUDIO_TYPE))
+	expectedFilePath := filepath.Join(sessionDir, fmt.Sprintf("%s.%s", filename, audioTypeStr))
 	session.SetFilePath(expectedFilePath)
 
 	// [STEP 7] Initialize recorder with device index
@@ -107,19 +105,29 @@ func StopSession(sessionID string) (string, error) {
 	return filePath, nil
 }
 
-func StopAllSessions() error {
-	sessions := sessionManager.GetAllSessions()
+func StopAllSessions() (map[string]string, error) {
+	sm := GetSessionManager()
 
-	for _, session := range sessions {
-		if session.IsRecording() {
-			_, err := StopSession(session.SessionID)
-			if err != nil {
-				return fmt.Errorf("failed to stop session %s: %w", session.SessionID, err)
-			}
+	sm.mu.RLock()
+	ids := make([]string, 0, len(sm.sessions))
+	for id := range sm.sessions {
+		ids = append(ids, id)
+	}
+	sm.mu.RUnlock()
+
+	results := make(map[string]string)
+	var lastErr error
+
+	for _, id := range ids {
+		fp, err := StopSession(id)
+		if err != nil {
+			lastErr = fmt.Errorf("stop %s: %w", id, err)
+			continue
 		}
+		results[id] = fp
 	}
 
-	return nil
+	return results, lastErr
 }
 
 func GetActiveSessionCount() int {
