@@ -33,38 +33,36 @@ func getAudioTypeString(audioType uint8) string {
 	}
 }
 
-// StartSession starts recording for a specific session and device
 func StartSession(sessionID string, deviceIndex int) error {
-	// Check if session already exists
+	// [STEP 1] Check if session already exists
 	if _, err := sessionManager.GetSession(sessionID); err == nil {
 		return fmt.Errorf("session %s already recording", sessionID)
 	}
 
-	// Create new session
+	// [STEP 2] Create new session
 	session, err := sessionManager.CreateSession(sessionID, deviceIndex)
 	if err != nil {
 		return err
 	}
 
-	// Create audio recorder instance
+	// [STEP 3] Create audio recorder instance
 	audioTypeStr := getAudioTypeString(cfg.SYS_AUDIO_TYPE)
 	session.Recorder = audio.NewAudioInstance(audioTypeStr)
 
-	// Set the device index BEFORE initializing
+	// [STEP 4] Set the microphone index BEFORE initializing
 	session.Recorder.SetDeviceIndex(deviceIndex)
 
-	// Create session-specific directory
+	// [STEP 5] Create session-specific directory
 	sessionDir := filepath.Join(cfg.SYS_RECORD_PATH, sessionID)
 
-	// Generate filename with timestamp
+	// [STEP 6] Generate filename with timestamp
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("device_%d_%s", deviceIndex, timestamp)
 
-	// Store the expected file path
 	expectedFilePath := filepath.Join(sessionDir, fmt.Sprintf("%s.%v", filename, cfg.SYS_AUDIO_TYPE))
 	session.SetFilePath(expectedFilePath)
 
-	// Initialize recorder with device index
+	// [STEP 7] Initialize recorder with device index
 	session.Recorder.Init(
 		session.Control,
 		sessionDir,
@@ -74,7 +72,7 @@ func StartSession(sessionID string, deviceIndex int) error {
 		int(cfg.SYS_AUDIO_INPUT_BUFFER_SIZE),
 	)
 
-	// Start recording in goroutine
+	// [STEP 8] Start recording in a separate goroutine
 	go session.Recorder.Record()
 	session.SetRecording(true)
 

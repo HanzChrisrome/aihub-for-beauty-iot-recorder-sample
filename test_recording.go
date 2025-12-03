@@ -19,26 +19,20 @@ func main() {
 	fmt.Println("\n Available Devices:")
 	audio.PrintAvailableDevices()
 
-	fmt.Println("\n Starting recording from BOTH microphones for 10 seconds...")
-	err := recorder.StartSession("mic1", 0)
+	idx1, err := audio.GetDeviceIndexByName("USB Condenser Microphone: Audio (hw:2,0)")
 	if err != nil {
-		log.Fatal("Failed to start recording session for mic1:", err)
+		log.Fatalf("Failed to resolve device name for mic2: %v", err)
 	}
-	fmt.Println("Mic 1 started!")
 
-	err = recorder.StartSession("mic2", 1)
-	if err != nil {
-		log.Fatal("Failed to start recording session for mic2:", err)
+	if err := recorder.StartSession("mic1", idx1); err != nil {
+		log.Fatalf("Failed to start recording for mic1: %v", err)
 	}
-	fmt.Println("Mic 2 started!")
 
-	fmt.Println("\n?? Recording from both microphones...")
+	fmt.Println("Recording for mic1... Press Enter to stop.")
 	for i := 10; i > 0; i-- {
 		fmt.Printf("  ??  %d seconds remaining...\n", i)
 		time.Sleep(1 * time.Second)
 	}
-
-	fmt.Println("\n??  Stopping recordings...")
 
 	file1, err := recorder.StopSession("mic1")
 	if err != nil {
@@ -46,16 +40,6 @@ func main() {
 	}
 	fmt.Printf("? Mic 1 saved: %s\n", file1)
 
-	file2, err := recorder.StopSession("mic2")
-	if err != nil {
-		log.Fatal("? Failed to stop mic2:", err)
-	}
-	fmt.Printf("? Mic 2 saved: %s\n", file2)
-
-	// Summary
 	fmt.Println("\nTest Complete!")
-	fmt.Println("================")
-	fmt.Println("  1. recordings/mic1/device_0_*.aiff (USB MIC PRO)")
-	fmt.Println("  2. recordings/mic2/device_1_*.aiff (USB Condenser Microphone)")
 
 }

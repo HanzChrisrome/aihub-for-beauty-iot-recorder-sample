@@ -20,10 +20,12 @@ func (sm *SessionManager) CreateSession(sessionID string, deviceIndex int) (*Rec
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
+	// Check if session already exists
 	if _, exists := sm.sessions[sessionID]; exists {
 		return nil, fmt.Errorf("session with ID %s already exists", sessionID)
 	}
 
+	// Create new session
 	session := NewRecordingSession(sessionID, deviceIndex)
 	sm.sessions[sessionID] = session
 	return session, nil

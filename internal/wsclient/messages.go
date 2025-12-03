@@ -8,6 +8,7 @@ type StartRecordingMessage struct {
 	Command     string `json:"command"`
 	SessionID   string `json:"session_id"`
 	DeviceIndex int    `json:"device_index"`
+	DeviceName  string `json:"device_name,omitempty"`
 }
 
 type StopRecordingMessage struct {
@@ -25,7 +26,7 @@ type StopAllMessage struct {
 
 type ResponseMessage struct {
 	Command string      `json:"command"`
-	Status  string      `json:"status"` // "success" or "error"
+	Status  string      `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }

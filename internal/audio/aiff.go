@@ -107,12 +107,11 @@ func (af *AIFFAudioFormat) Record() {
 
 	in := make([]int32, af.InputBufferSize)
 
-	// Get the specific device by index
 	var inputDevice *portaudio.DeviceInfo
 	var err error
 
+	// Select input device based on DeviceIndex
 	if af.DeviceIndex >= 0 {
-		// Use specific device index
 		devices, err := portaudio.Devices()
 		if err != nil {
 			panic("failed to get devices: " + err.Error())
@@ -124,8 +123,9 @@ func (af *AIFFAudioFormat) Record() {
 
 		inputDevice = devices[af.DeviceIndex]
 		fmt.Printf("Using input device [%d]: %s\n", af.DeviceIndex, inputDevice.Name)
+
+		// If DeviceIndex is not set, use default input device
 	} else {
-		// Fallback to default input device
 		inputDevice, err = portaudio.DefaultInputDevice()
 		if err != nil {
 			panic("no input device found: " + err.Error())
