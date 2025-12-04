@@ -1,0 +1,132 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Go build cache
+.cache/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Recordings directory (actual audio files)
+recordings/
+*.aiff
+*.wav
+*.pcm
+
+# RNNoise build artifacts
+rnnoise/.libs/
+rnnoise/.deps/
+rnnoise/autom4te.cache/
+rnnoise/config.log
+rnnoise/config.status
+rnnoise/Makefile
+rnnoise/libtool
+rnnoise/stamp-h1
+rnnoise/**/*.o
+rnnoise/**/*.la
+rnnoise/**/*.lo
+rnnoise/**/*.Plo
+rnnoise/**/*.Tpo
+rnnoise/examples/.libs/
+rnnoise/examples/rnnoise_demo
+rnnoise/src/.libs/
+rnnoise/*.pc
+
+# Compiled binary (your application)
+aihub-recorder
+recorder-iot
+main
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS specific
+Thumbs.db
+Desktop.ini
+
+# Build directories
+bin/
+build/
+dist/
+
+# Test recordings (if you create test files)
+test_recordings/
+*.aiff.test
+*.wav.test
+
+# Database files (if you add local DB later)
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates and keys (if you add SSL/TLS)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Debug files
+debug
+__debug_bin
+
+# Pi-specific (if you generate these)
+*.img
+*.zip
+
+# Documentation build artifacts
+docs/_build/
+site/
+
+# Python virtual environment (if you add any Python tools)
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node modules (if you add any Node.js tools)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Compressed files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Backup files
+*.bak
+*.backup
+*~

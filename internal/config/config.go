@@ -17,6 +17,7 @@ type Config struct {
 	SYS_AUDIO_CHANNEL           int16
 	SYS_AUDIO_SAMPLE_RATE       float64
 	SYS_AUDIO_INPUT_BUFFER_SIZE int
+	SYS_ENABLE_DENOISING        bool
 }
 
 func Load() *Config {
@@ -26,6 +27,8 @@ func Load() *Config {
 	cfgAudioChannel := loadEnv("SYS_AUDIO_CHANNEL", "1")
 	cfgAudioSampleRate := loadEnv("SYS_AUDIO_SAMPLE_RATE", "48000")
 	cfgAudioInputBufferSize := loadEnv("SYS_AUDIO_INPUT_BUFFER_SIZE", "64")
+	cfgEnableDenoising := loadEnv("SYS_ENABLE_DENOISING", "true")
+	enableDenoising := cfgEnableDenoising == "true" || cfgEnableDenoising == "1"
 
 	audioType, err := strconv.Atoi(cfgAudioType)
 	must(err)
@@ -48,6 +51,7 @@ func Load() *Config {
 		SYS_AUDIO_CHANNEL:           sysAudioChannel,
 		SYS_AUDIO_SAMPLE_RATE:       sysAudioSampleRate,
 		SYS_AUDIO_INPUT_BUFFER_SIZE: sysAudioInputBufferSize,
+		SYS_ENABLE_DENOISING:        enableDenoising,
 	}
 }
 

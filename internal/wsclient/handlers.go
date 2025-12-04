@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/otis-co-ltd/aihub-recorder/internal/audio"
+	"github.com/otis-co-ltd/aihub-recorder/internal/config"
 	"github.com/otis-co-ltd/aihub-recorder/internal/recorder"
 )
 
@@ -79,7 +80,7 @@ func (c *Client) handleStartRecordingMulti(msg StartRecordingMessage) {
 
 // handleStopRecordingSession handles session-based stop
 func (c *Client) handleStopRecordingSession(msg StopRecordingMessage) {
-	log.Printf("⏹️ Stopping recording for session: %s", msg.SessionID)
+	log.Printf("?? Stopping recording for session: %s", msg.SessionID)
 
 	filePath, err := recorder.StopSession(msg.SessionID)
 	if err != nil {
@@ -93,7 +94,21 @@ func (c *Client) handleStopRecordingSession(msg StopRecordingMessage) {
 	}
 
 	go func() {
-		err := c.sendFile(filePath, msg.SessionID)
+		finalPath := filePath
+		if config.Load().SYS_ENABLE_DENOISING {
+			log.Printf("?? Applying RNNoise denoising to: %s", filePath)
+			denoisedPath, err := audio.DenoiseAudioFile(filePath)
+			if err != nil {
+				log.Printf("?? Denoising failed: %v, uploading original file", err)
+				c.sendErrorMessage("denoise", fmt.Sprintf("Denoising failed: %v", err))
+			} else {
+				log.Printf("? Denoised audio saved to: %s", denoisedPath)
+				finalPath = denoisedPath
+			}
+		}
+
+		// Upload the final file (denoised or original)
+		err := c.sendFile(finalPath, msg.SessionID)
 		if err != nil {
 			c.sendErrorMessage("upload_file", fmt.Sprintf("Failed to upload: %v", err))
 		} else {
