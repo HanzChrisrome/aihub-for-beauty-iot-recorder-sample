@@ -35,34 +35,3 @@ func (c *Client) sendResponse(response ResponseMessage) {
 
     c.send <- data
 }
-
-// Backward compatibility functions
-func (c *Client) sendError(errMsg string) {
-    msg := WSMessage{
-        Type:    MSG_ERROR,
-        Message: errMsg,
-    }
-    
-    data, err := json.Marshal(msg)
-    if err != nil {
-        log.Printf("Failed to marshal error message: %v", err)
-        return
-    }
-    
-    c.send <- data
-}
-
-func (c *Client) sendSuccess(successMsg string) {
-    msg := WSMessage{
-        Type:    MSG_SUCCESS,
-        Message: successMsg,
-    }
-    
-    data, err := json.Marshal(msg)
-    if err != nil {
-        log.Printf("Failed to marshal success message: %v", err)
-        return
-    }
-    
-    c.send <- data
-}

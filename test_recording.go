@@ -16,7 +16,7 @@ func main() {
 		log.Fatal("Failed to initialize PortAudio:", err)
 	}
 
-	idx1, err := audio.GetDeviceIndexByName("USB Condenser Microphone: Audio (hw:2,0)")
+	idx1, err := audio.GetDeviceIndexByName("USB Condenser Microphone: Audio (hw:0,0)")
 	if err != nil {
 		log.Fatalf("Failed to resolve device name for mic2: %v", err)
 	}

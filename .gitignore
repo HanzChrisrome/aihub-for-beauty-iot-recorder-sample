@@ -39,24 +39,8 @@ recordings/
 *.wav
 *.pcm
 
-# RNNoise build artifacts
-rnnoise/.libs/
-rnnoise/.deps/
-rnnoise/autom4te.cache/
-rnnoise/config.log
-rnnoise/config.status
-rnnoise/Makefile
-rnnoise/libtool
-rnnoise/stamp-h1
-rnnoise/**/*.o
-rnnoise/**/*.la
-rnnoise/**/*.lo
-rnnoise/**/*.Plo
-rnnoise/**/*.Tpo
-rnnoise/examples/.libs/
-rnnoise/examples/rnnoise_demo
-rnnoise/src/.libs/
-rnnoise/*.pc
+# RNNoise - clone separately on each machine
+rnnoise/
 
 # Compiled binary (your application)
 aihub-recorder

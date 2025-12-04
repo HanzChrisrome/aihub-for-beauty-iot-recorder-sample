@@ -52,7 +52,7 @@ func ListAudioDevices() []AudioDevice {
 
 	var audioDevices []AudioDevice
 	for i, device := range devices {
-		if device.MaxInputChannels > 0 {
+		if device.MaxInputChannels > 0 && isHardwareDevice(device.Name) {
 			hostAPIName := "Unknown"
 			if device.HostApi != nil {
 				hostAPIName = device.HostApi.Name
@@ -70,6 +70,22 @@ func ListAudioDevices() []AudioDevice {
 
 	log.Printf("Found %d audio input devices", len(audioDevices))
 	return audioDevices
+}
+
+func isHardwareDevice(name string) bool {
+	n := strings.ToLower(name)
+	if strings.Contains(n, "hw:") {
+		return true
+	}
+
+	virtual := []string{"default", "sysdefault", "spdif"}
+	for _, v := range virtual {
+		if n == v || strings.Contains(n, v) {
+			return false
+		}
+	}
+
+	return false
 }
 
 // GetDeviceByIndex returns device information for a specific index
