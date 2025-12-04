@@ -5,6 +5,26 @@
 Small recorder client that connects to a backend via WebSocket and records audio on the Pi.  
 This document describes architecture, WebSocket commands, payloads, how to run, and recommended usage.
 
+## Development Setup
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and configure
+3. Install Go dependencies: `go mod download`
+4. (On Raspberry Pi only) Build RNNoise:
+   ```bash
+   cd rnnoise
+   ./autogen.sh
+   ./configure
+   make
+   ```
+5. Install sox: `sudo apt-get install sox` (Raspberry Pi only)
+
+## Important Files
+
+- `.env` - Local configuration (NOT committed to Git)
+- `recordings/` - Audio files (NOT committed to Git)
+- `rnnoise/.libs/` - Compiled binaries (NOT committed to Git, build on target)
+
 
 ## Quick links (open these in your workspace)
 - [cmd/main.go](cmd/main.go) — program entry
